@@ -1,0 +1,45 @@
+version: "3.3"
+services:
+  spark-master:
+    image: workshop/spark:latest
+    container_name: spark-master
+    hostname: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    networks:
+      - spark-network
+    environment:
+      - "SPARK_LOCAL_IP=spark-master"
+      - "SPARK_MASTER_PORT=7077"
+      - "SPARK_MASTER_WEBUI_PORT=8080"
+    command: "/start-master.sh"
+  spark-worker:
+    image: workshop/spark:latest
+    depends_on:
+      - spark-master
+    ports:
+      - 8080
+    networks:
+      - spark-network
+    environment:
+      - "SPARK_MASTER=spark://spark-master:7077"
+      - "SPARK_WORKER_WEBUI_PORT=8080"
+    command: "/start-worker.sh"
+
+  spark-submit:
+      image: workshop/spark:latest
+      depends_on:
+        - spark-worker
+      networks:
+        - spark-network
+      environment:
+        - "SPARK_MASTER=spark://spark-master:7077"
+      command: "/spark/bin/spark-submit --master spark://spark-master:7077 --class org.apache.spark.examples.SparkPi /spark/examples/jars/spark-examples_2.12-3.5.0.jar 2000"
+
+
+networks:
+  spark-network:
+    driver: bridge
+    ipam:
+      driver: default
